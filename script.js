@@ -23,6 +23,12 @@ class Workout {
     } ${this.date.getDate()}`;
   }
 
+  _getCurrentPosition = () => {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject);
+    });
+  };
+
   //adding a public interface, now every object gets this method
   click() {
     this.clicks++;
@@ -222,7 +228,6 @@ class App {
     }
     //add new object to workout array
     this.#workouts.push(workout);
-    console.log(workout);
 
     //render workout on map as as marker. since this is not a callback function, we don't need to bind the this keyword. we are calling this function ourselves
     this._renderWorkoutMarker(workout);
@@ -262,11 +267,14 @@ class App {
     markerToDelete.remove();
   }
 
-  _renderWorkout(workout) {
+  async _renderWorkout(workout) {
+    //geocode the location of the workout with workout.coords and add the result to the workout title
+    const data = await this._geoCode(workout.coords);
+    console.log(data);
     //this first part of the html is common to both running and cycling workouts
     let html = `
     <li class="workout workout--${workout.type}" data-id="${workout.id}">
-          <h2 class="workout__title">${workout.description}
+          <h2 class="workout__title">${workout.description} in ${data.city}
           <div class="workout__actions">
             <button class="workout__action workout__action--edit">Edit</button>
             <button class="workout__action workout__action--delete">Delete</button>
@@ -326,6 +334,27 @@ class App {
 
     //add to the end of the form element because adding it to the ul element doesn't make sense
     form.insertAdjacentHTML('afterend', html);
+  }
+
+  async _geoCode(coords) {
+    try {
+      // Geolocation. don't need to manually handle any errors here because the promise is immediately rejected if the position can't be found
+      // const pos = await this._getCurrentPosition();
+      // const { latitude: lat, longitude: lng } = pos.coords;
+      // Reverse Geocoding need to manually handle errors here because there are cases where the fetch doesn't reject
+      const resGeo = await fetch(
+        `https://geocode.maps.co/reverse?lat=${coords[0]}&lon=${coords[1]}`
+      );
+      if (!resGeo.ok) throw new Error('Problem getting location data');
+      const dataGeo = await resGeo.json();
+
+      return dataGeo.address;
+    } catch (err) {
+      console.error(`${err} 💥`);
+
+      // Reject promise returned from the async function. you need to rethrow the error because sometimes one of the awaits will fail but the promise of the async function will still be fufilled. rethrowing the error will propagate it down to the catch block of the promise consumption. we manually reject the promise returned by the async function
+      throw err;
+    }
   }
 
   //determines the action to be taken based on where the workout container was clicked
