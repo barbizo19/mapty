@@ -270,11 +270,11 @@ class App {
   async _renderWorkout(workout) {
     //geocode the location of the workout with workout.coords and add the result to the workout title
     const data = await this._geoCode(workout.coords);
-    console.log(data);
+    const location = data.city ? data.city : data.county;
     //this first part of the html is common to both running and cycling workouts
     let html = `
     <li class="workout workout--${workout.type}" data-id="${workout.id}">
-          <h2 class="workout__title">${workout.description} in ${data.city}
+          <h2 class="workout__title">${workout.description} in ${location}
           <div class="workout__actions">
             <button class="workout__action workout__action--edit">Edit</button>
             <button class="workout__action workout__action--delete">Delete</button>
